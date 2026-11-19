@@ -31,7 +31,7 @@ static const f32 PI=3.14159265358979f;
 
 // ------------------------------- config ------------------------------
 struct Cfg {
-    int64_t off_children=0x60, off_name=0x18, off_classname=0x28;
+    u64 off_children=0x60, off_name=0x18, off_classname=0x28;
     u64 off_primitive=0xD8, off_prim_rot=0x120, off_prim_pos=0x150;
     u64 off_players_local=0x130, off_hum_hp=0x18C, off_hum_maxhp=0x190;
     u32 cam_fov_y=70, refresh_ms=12, max_studs=5000;
