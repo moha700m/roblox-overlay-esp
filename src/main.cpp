@@ -26,12 +26,12 @@
 #pragma comment(lib,"gdi32.lib")
 
 using u8=unsigned char; using u32=uint32_t; using u64=uint64_t;
-using i32=int32_t; using f32=float;
+using i32=int32_t; using i64=int64_t; using f32=float;
 static const f32 PI=3.14159265358979f;
 
 // ------------------------------- config ------------------------------
 struct Cfg {
-    u64 off_children=0x60, off_name=0x18, off_classname=0x28;
+    int64_t off_children=0x60, off_name=0x18, off_classname=0x28;
     u64 off_primitive=0xD8, off_prim_rot=0x120, off_prim_pos=0x150;
     u64 off_players_local=0x130, off_hum_hp=0x18C, off_hum_maxhp=0x190;
     u32 cam_fov_y=70, refresh_ms=12, max_studs=5000;
@@ -51,16 +51,17 @@ static void LoadCfg(){
         size_t e=line.find('='); if(e==std::string::npos)continue;
         std::string k=trim(line.substr(0,e)), v=trim(line.substr(e+1));
         if(k.empty()||v.empty())continue; kv[k]=_strtoui64(v.c_str(),nullptr,0); }
-    auto U=[&](const char*k,u64&d){ auto it=kv.find(k); if(it!=kv.end())d=it->second; };
+    auto U=[&](const char*k,u64* d){ auto it=kv.find(k); if(it!=kv.end()&&d) *d=it->second; };
     U("offset.children",&g_cfg.off_children); U("offset.name",&g_cfg.off_name);
     U("offset.classname",&g_cfg.off_classname); U("offset.primitive",&g_cfg.off_primitive);
     U("offset.prim_rot",&g_cfg.off_prim_rot); U("offset.prim_pos",&g_cfg.off_prim_pos);
     U("offset.players_local",&g_cfg.off_players_local); U("offset.humanoid_hp",&g_cfg.off_hum_hp);
     U("offset.humanoid_maxhp",&g_cfg.off_hum_maxhp);
-    U("camera.fov_y",(u64&)g_cfg.cam_fov_y); U("refresh_ms",(u64&)g_cfg.refresh_ms);
-    U("render.max_studs",(u64&)g_cfg.max_studs);
-    U("show.names",(u64&)g_cfg.show_names); U("show.distance",(u64&)g_cfg.show_distance);
-    U("show.health",(u64&)g_cfg.show_health); U("show.colorful",(u64&)g_cfg.colorize);
+    U("camera.fov_y",(u64*)&g_cfg.cam_fov_y); U("refresh_ms",(u64*)&g_cfg.refresh_ms);
+    U("render.max_studs",(u64*)&g_cfg.max_studs);
+    auto B=[&](const char*k,bool& d){ u64 v=(u64)d; U(k,&v); d=v!=0; };
+    B("show.names",g_cfg.show_names); B("show.distance",g_cfg.show_distance);
+    B("show.health",g_cfg.show_health); B("show.colorful",g_cfg.colorize);
 }
 
 // --------------------------- memory access ---------------------------
