@@ -1,0 +1,51 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Configure (CMake + Ninja)
+        shell: pwsh
+        run: |
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          Import-Module "$vsPath\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.*\Modules\CMakeNinja" -ErrorAction SilentlyContinue
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Prepare package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist | Out-Null
+          Copy-Item build\Release\rbx-esp.exe dist\
+          Copy-Item src\rbx.ini dist\
+          Compress-Archive -Path dist\* -DestinationPath rbx-esp-win64.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rbx-esp-win64
+          path: rbx-esp-win64.zip
+          retention-days: 90
+
+      - name: Create/Update nightly release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "nightly"
+          gh release delete $tag --yes --cleanup-tag 2>$null
+          gh release create $tag dist\rbx-esp.exe dist\rbx.ini rbx-esp-win64.zip `
+            --title "Nightly build $(Get-Date -Format yyyy-MM-dd)" `
+            --notes "Automated build from latest commit. Download rbx-esp-win64.zip, extract, run rbx-esp.exe as Administrator."
